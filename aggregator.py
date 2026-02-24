@@ -1,12 +1,10 @@
 import os
 import base64
-import json
 import requests
-from datetime import datetime
 
 INPUT_FILE = "inputs.txt"
 OUTPUT_DIR = "output"
-OUTPUT_FILE = os.path.join(OUTPUT_DIR, "merged.json")
+OUTPUT_FILE = os.path.join(OUTPUT_DIR, "merged.txt")
 
 
 def is_base64(data: str) -> bool:
@@ -27,49 +25,46 @@ def fetch_url(url):
         return None
 
 
-def parse_content(content):
-    # اگر Base64 بود decode کن
-    if is_base64(content):
-        try:
-            content = base64.b64decode(content).decode("utf-8")
-        except:
-            pass
-
-    # اگر JSON بود parse کن
-    try:
-        return json.loads(content)
-    except:
-        return {"raw_lines": content.splitlines()}
-
-
 def main():
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR)
+    # اگر output وجود داره ولی فایل هست، پاکش کن
+    if os.path.exists(OUTPUT_DIR) and not os.path.isdir(OUTPUT_DIR):
+        os.remove(OUTPUT_DIR)
 
-    merged_data = {
-        "updated_at": datetime.utcnow().isoformat(),
-        "sources": []
-    }
+    # ساخت پوشه اگر نبود
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    merged_lines = []
 
     with open(INPUT_FILE, "r") as f:
         urls = [line.strip() for line in f if line.strip()]
 
     for url in urls:
+        print(f"Fetching: {url}")
         content = fetch_url(url)
         if not content:
             continue
 
-        parsed = parse_content(content)
+        # اگر Base64 بود decode کن
+        if is_base64(content):
+            try:
+                content = base64.b64decode(content).decode("utf-8")
+            except:
+                pass
 
-        merged_data["sources"].append({
-            "url": url,
-            "data": parsed
-        })
+        lines = content.splitlines()
+
+        for line in lines:
+            clean = line.strip()
+            if clean:
+                merged_lines.append(clean)
+
+    # حذف موارد تکراری
+    merged_lines = list(dict.fromkeys(merged_lines))
 
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(merged_data, f, indent=2, ensure_ascii=False)
+        f.write("\n".join(merged_lines))
 
-    print("Done. Merged output saved.")
+    print(f"Done. {len(merged_lines)} lines saved.")
 
 
 if __name__ == "__main__":
