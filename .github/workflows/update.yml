@@ -1,4 +1,4 @@
-name: Update Subscription Merge
+name: Update RAW Merge
 
 on:
   schedule:
@@ -18,16 +18,16 @@ jobs:
         with:
           python-version: 3.11
 
-      - name: Install deps
+      - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run aggregator
+      - name: Run script
         run: python aggregator.py
 
       - name: Commit changes
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add output/merged.json
-          git commit -m "Auto update merged data" || echo "No changes"
+          git add output/merged.txt
+          git commit -m "Auto update merged raw list" || echo "No changes"
           git push
